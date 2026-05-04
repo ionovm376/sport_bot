@@ -1,8 +1,7 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
-import os
 
 from bot.keyboards import main_menu, sport_menu
 from bot.states import FindGame
@@ -13,36 +12,16 @@ router = Router()
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
-
-    # Путь к фото
-    photo_path = os.path.join(os.path.dirname(__file__), '..', 'start_photo.jpg')
-
-    # Отправляем фото с текстом
-    if os.path.exists(photo_path):
-        photo = FSInputFile(photo_path)
-        await message.answer_photo(
-            photo=photo,
-            caption="PlayZone — найди компанию для спорта за пару минут\n\n"
-                    "Хочешь поиграть, но не с кем?\n"
-                    "Мы поможем найти партнера или команду прямо сегодня.\n\n"
-                    "⚡ Создавай игры\n"
-                    "⚡ Присоединяйся к другим\n"
-                    "⚡ Играй без долгих поисков\n\n"
-                    "Просто. Быстро. По делу.",
-            reply_markup=main_menu()
-        )
-    else:
-        # Если фото нет, отправляем просто текст
-        await message.answer(
-            "PlayZone — найди компанию для спорта за пару минут\n\n"
-            "Хочешь поиграть, но не с кем?\n"
-            "Мы поможем найти партнера или команду прямо сегодня.\n\n"
-            "⚡ Создавай игры\n"
-            "⚡ Присоединяйся к другим\n"
-            "⚡ Играй без долгих поисков\n\n"
-            "Просто. Быстро. По делу.",
-            reply_markup=main_menu()
-        )
+    await message.answer(
+        "PlayZone — найди компанию для спорта за пару минут\n\n"
+        "Хочешь поиграть, но не с кем?\n"
+        "Мы поможем найти партнера или команду прямо сегодня.\n\n"
+        "⚡ Создавай игры\n"
+        "⚡ Присоединяйся к другим\n"
+        "⚡ Играй без долгих поисков\n\n"
+        "Просто. Быстро. По делу.",
+        reply_markup=main_menu()
+    )
 
 
 @router.message(F.text == "👤 Мои игры")
