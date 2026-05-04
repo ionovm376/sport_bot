@@ -17,27 +17,25 @@ async def check_and_send_reviews(bot):
                 if game['reviews_sent']:
                     continue
 
-                # Для MVP упрощаем: отправляем опрос сразу через 10 секунд после создания игры
-                # В продакшене нужно парсить game['game_time'] и ждать 3 часа
-
-                # Проверяем, прошло ли 10 секунд с момента создания
+                # Устанавливаем время создания игры при первой проверке
                 if 'created_at' not in game:
                     game['created_at'] = current_time
                     continue
 
+                # Отправляем опрос через 2 часа после создания матча
                 time_passed = current_time - game['created_at']
 
-                # Если прошло больше 10 секунд - отправляем опросы
-                if time_passed.total_seconds() >= 10:
+                # 2 часа = 7200 секунд
+                if time_passed.total_seconds() >= 7200:
                     await send_review_requests(bot, game)
                     game['reviews_sent'] = True
 
-            # Проверяем каждые 5 секунд
-            await asyncio.sleep(5)
+            # Проверяем каждые 5 минут (300 секунд)
+            await asyncio.sleep(300)
 
         except Exception as e:
             print(f"Ошибка в check_and_send_reviews: {e}")
-            await asyncio.sleep(5)
+            await asyncio.sleep(300)
 
 
 async def send_review_requests(bot, game):
