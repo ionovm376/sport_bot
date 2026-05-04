@@ -15,8 +15,7 @@ async def cmd_start(message: Message, state: FSMContext):
     await message.answer(
         "Добро пожаловать в PlayZone!\n\n"
         "Здесь ты можешь быстро найти людей для спорта или создать свою игру.\n\n"
-        "👇 Выбирай, что хочешь сделать:\n\n"
-        "🔍 Найти игру — присоединиться",
+        "👇 Выбирай, что хочешь сделать:",
         reply_markup=main_menu()
     )
 
