@@ -1,7 +1,8 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.fsm.context import FSMContext
+import os
 
 from bot.keyboards import main_menu, sport_menu
 from bot.states import FindGame
@@ -12,12 +13,28 @@ router = Router()
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer(
-        f"👋 Привет, {message.from_user.first_name}!\n\n"
-        "Я помогу тебе найти партнера для спорта.\n\n"
-        "Выбери действие:",
-        reply_markup=main_menu()
-    )
+
+    # Путь к фото
+    photo_path = os.path.join(os.path.dirname(__file__), '..', 'start_photo.jpg')
+
+    # Отправляем фото с текстом
+    if os.path.exists(photo_path):
+        photo = FSInputFile(photo_path)
+        await message.answer_photo(
+            photo=photo,
+            caption=f"👋 Привет, {message.from_user.first_name}!\n\n"
+                    "Я помогу тебе найти партнера для спорта.\n\n"
+                    "Выбери действие:",
+            reply_markup=main_menu()
+        )
+    else:
+        # Если фото нет, отправляем просто текст
+        await message.answer(
+            f"👋 Привет, {message.from_user.first_name}!\n\n"
+            "Я помогу тебе найти партнера для спорта.\n\n"
+            "Выбери действие:",
+            reply_markup=main_menu()
+        )
 
 
 @router.message(F.text == "👤 Мои игры")
