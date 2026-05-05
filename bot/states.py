@@ -1,6 +1,10 @@
 from aiogram.fsm.state import State, StatesGroup
 
 
+class Registration(StatesGroup):
+    city = State()
+
+
 class CreateGame(StatesGroup):
     sport = State()
     location = State()

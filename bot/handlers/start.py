@@ -3,8 +3,8 @@ from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-from bot.keyboards import main_menu, sport_menu
-from bot.states import FindGame
+from bot.keyboards import main_menu, sport_menu, city_menu
+from bot.states import FindGame, Registration
 
 router = Router()
 
@@ -12,12 +12,34 @@ router = Router()
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
+    await state.set_state(Registration.city)
     await message.answer(
-        "Добро пожаловать в PlayZone Москва!\n\n"
-        "Здесь ты можешь быстро найти людей для спорта в Москве или создать свою игру.\n\n"
-        "👇 Выбирай, что хочешь сделать:",
-        reply_markup=main_menu()
+        "Добро пожаловать в PlayZone!\n\n"
+        "🏙️ Выбери свой город:",
+        reply_markup=city_menu()
     )
+
+
+@router.message(Registration.city)
+async def process_city(message: Message, state: FSMContext):
+    if message.text == "🏙️ Москва":
+        await state.clear()
+        await message.answer(
+            "Отлично! Ты в PlayZone Москва!\n\n"
+            "Здесь ты можешь быстро найти людей для спорта или создать свою игру.\n\n"
+            "👇 Выбирай, что хочешь сделать:",
+            reply_markup=main_menu()
+        )
+    elif message.text == "🌍 Другое":
+        await state.clear()
+        await message.answer(
+            "К сожалению, пока сервис работает только в Москве 😔\n\n"
+            "Следи за обновлениями — скоро откроемся в других городах!\n\n"
+            "Чтобы начать заново, нажми /start",
+            reply_markup=None
+        )
+    else:
+        await message.answer("⚠️ Выбери город из меню")
 
 
 @router.message(F.text == "👤 Мои игры")
