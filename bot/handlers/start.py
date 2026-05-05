@@ -2,9 +2,11 @@ from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
+from sqlalchemy import select
 
 from bot.keyboards import main_menu, sport_menu, city_menu
 from bot.states import FindGame, Registration
+from bot.database import async_session_maker, Game, CompletedGame
 
 router = Router()
 
@@ -44,18 +46,24 @@ async def process_city(message: Message, state: FSMContext):
 
 @router.message(F.text == "👤 Мои игры")
 async def my_games(message: Message):
-    from bot.handlers.create_game import games_storage
-    from bot.rating_system import completed_games
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
     user_id = message.from_user.id
 
-    # Ищем активные игры (созданные пользователем)
-    active_games = [(idx, game) for idx, game in enumerate(games_storage) if game['creator_id'] == user_id]
+    # Ищем активные игры (созданные пользователем) в БД
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(Game).where(Game.creator_id == user_id, Game.is_active == True)
+        )
+        active_games = result.scalars().all()
 
-    # Ищем завершённые игры
-    finished_games = [game for game in completed_games
-                     if game['creator_id'] == user_id or game['participant_id'] == user_id]
+        # Ищем завершённые игры
+        result = await session.execute(
+            select(CompletedGame).where(
+                (CompletedGame.creator_id == user_id) | (CompletedGame.participant_id == user_id)
+            )
+        )
+        finished_games = result.scalars().all()
 
     if not active_games and not finished_games:
         await message.answer(
@@ -69,17 +77,17 @@ async def my_games(message: Message):
     if active_games:
         await message.answer("🎮 Твои активные игры:", reply_markup=main_menu())
 
-        for idx, game in active_games:
+        for game in active_games:
             text = (
-                f"{game['sport']}\n"
-                f"📍 {game['location']}\n"
-                f"🕐 {game['time']}\n"
-                f"👥 Нужно: {game['players_needed']}\n"
-                f"🏅 Уровень: {game['level']}"
+                f"{game.sport}\n"
+                f"📍 {game.location}\n"
+                f"🕐 {game.time}\n"
+                f"👥 Нужно: {game.players_needed}\n"
+                f"🏅 Уровень: {game.level}"
             )
 
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="❌ Отменить игру", callback_data=f"cancel_game_{idx}")]
+                [InlineKeyboardButton(text="❌ Отменить игру", callback_data=f"cancel_game_{game.id}")]
             ])
 
             await message.answer(text, reply_markup=keyboard)
@@ -88,11 +96,11 @@ async def my_games(message: Message):
     if finished_games:
         text = "✅ Завершённые игры:\n\n"
         for idx, game in enumerate(finished_games, 1):
-            partner = game['participant_username'] if game['creator_id'] == user_id else game['creator_username']
+            partner = game.participant_username if game.creator_id == user_id else game.creator_username
             text += (
-                f"{idx}. {game['sport']}\n"
+                f"{idx}. {game.sport}\n"
                 f"👤 Партнёр: @{partner}\n"
-                f"🕐 {game['game_time']}\n\n"
+                f"🕐 {game.game_time}\n\n"
             )
         await message.answer(text)
 
@@ -108,28 +116,29 @@ async def find_game(message: Message, state: FSMContext):
 
 @router.callback_query(F.data.startswith("cancel_game_"))
 async def cancel_game(callback: CallbackQuery):
-    from bot.handlers.create_game import games_storage
+    game_id = int(callback.data.split("_")[2])
 
-    game_idx = int(callback.data.split("_")[2])
+    async with async_session_maker() as session:
+        result = await session.execute(select(Game).where(Game.id == game_id))
+        game = result.scalar_one_or_none()
 
-    if game_idx >= len(games_storage):
-        await callback.answer("❌ Игра уже удалена", show_alert=True)
-        return
+        if not game:
+            await callback.answer("❌ Игра уже удалена", show_alert=True)
+            return
 
-    game = games_storage[game_idx]
+        # Проверяем, что это игра пользователя
+        if game.creator_id != callback.from_user.id:
+            await callback.answer("⚠️ Это не твоя игра!", show_alert=True)
+            return
 
-    # Проверяем, что это игра пользователя
-    if game['creator_id'] != callback.from_user.id:
-        await callback.answer("⚠️ Это не твоя игра!", show_alert=True)
-        return
+        # Помечаем игру как неактивную
+        game.is_active = False
+        await session.commit()
 
-    # Удаляем игру
-    games_storage.pop(game_idx)
-
-    await callback.message.edit_text(
-        f"❌ Игра отменена\n\n"
-        f"{game['sport']}\n"
-        f"📍 {game['location']}\n"
-        f"🕐 {game['time']}"
-    )
-    await callback.answer("✅ Игра удалена из поиска!")
+        await callback.message.edit_text(
+            f"❌ Игра отменена\n\n"
+            f"{game.sport}\n"
+            f"📍 {game.location}\n"
+            f"🕐 {game.time}"
+        )
+        await callback.answer("✅ Игра удалена из поиска!")

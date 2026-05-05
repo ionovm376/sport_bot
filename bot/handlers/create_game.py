@@ -1,13 +1,16 @@
 from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
+from sqlalchemy import select
 
 from bot.states import CreateGame
 from bot.keyboards import sport_menu, level_menu, players_menu, confirm_menu, skip_comment, main_menu
 from bot.sports_list import SPORTS_LIST
+from bot.database import async_session_maker, Game
 
 router = Router()
 
+# Оставляем для обратной совместимости (используется в других файлах)
 games_storage = []
 
 
@@ -126,11 +129,23 @@ async def process_comment(message: Message, state: FSMContext):
 async def process_confirm(message: Message, state: FSMContext):
     if message.text == "✅ Подтвердить":
         data = await state.get_data()
-        data['creator_id'] = message.from_user.id
-        data['creator_username'] = message.from_user.username or "без username"
-        data['city'] = 'Москва'  # Фиксируем город для защиты от бардака
 
-        games_storage.append(data)
+        # Сохраняем игру в БД
+        async with async_session_maker() as session:
+            new_game = Game(
+                sport=data['sport'],
+                location=data['location'],
+                time=data['time'],
+                level=data['level'],
+                players_needed=data['players_needed'],
+                comment=data.get('comment', '—'),
+                city='Москва',
+                creator_id=message.from_user.id,
+                creator_username=message.from_user.username or "без username",
+                is_active=True
+            )
+            session.add(new_game)
+            await session.commit()
 
         await message.answer(
             "✅ Игра создана!\n\n"
