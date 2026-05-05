@@ -13,8 +13,8 @@ router = Router()
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(
-        "Добро пожаловать в PlayZone!\n\n"
-        "Здесь ты можешь быстро найти людей для спорта или создать свою игру.\n\n"
+        "Добро пожаловать в PlayZone Москва!\n\n"
+        "Здесь ты можешь быстро найти людей для спорта в Москве или создать свою игру.\n\n"
         "👇 Выбирай, что хочешь сделать:",
         reply_markup=main_menu()
     )

@@ -128,6 +128,7 @@ async def process_confirm(message: Message, state: FSMContext):
         data = await state.get_data()
         data['creator_id'] = message.from_user.id
         data['creator_username'] = message.from_user.username or "без username"
+        data['city'] = 'Москва'  # Фиксируем город для защиты от бардака
 
         games_storage.append(data)
 
