@@ -45,6 +45,7 @@ class Game(Base):
     creator_id: Mapped[int] = mapped_column(BigInteger)
     creator_username: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

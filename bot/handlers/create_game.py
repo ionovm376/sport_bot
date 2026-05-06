@@ -7,6 +7,7 @@ from bot.states import CreateGame
 from bot.keyboards import sport_menu, level_menu, players_menu, confirm_menu, skip_comment, main_menu
 from bot.sports_list import SPORTS_LIST
 from bot.database import async_session_maker, Game
+from bot.time_parser import parse_game_time, calculate_expiry_time
 
 router = Router()
 
@@ -57,13 +58,43 @@ async def process_location(message: Message, state: FSMContext):
     await state.update_data(location=message.text)
     await state.set_state(CreateGame.time)
     await message.answer(
-        "🕐 Укажи время игры:\n(например: сегодня 19:00, завтра 10:00)"
+        "🕐 Укажи время игры в правильном формате:\n\n"
+        "✅ Правильно:\n"
+        "• Сегодня 19:00\n"
+        "• Завтра 14:30\n"
+        "• 07.05 в 10:00\n"
+        "• 10 мая 18:00\n\n"
+        "❌ Неправильно:\n"
+        "• На выходных\n"
+        "• Скоро\n"
+        "• Вечером\n\n"
+        "⚠️ Анкета автоматически удалится через 2 часа после указанного времени!"
     )
 
 
 @router.message(CreateGame.time)
 async def process_time(message: Message, state: FSMContext):
-    await state.update_data(time=message.text)
+    time_str = message.text
+
+    # Парсим время
+    game_time = parse_game_time(time_str)
+
+    if game_time is None:
+        await message.answer(
+            "❌ Не удалось распознать время!\n\n"
+            "Используй правильный формат:\n"
+            "• Сегодня 19:00\n"
+            "• Завтра 14:30\n"
+            "• 07.05 в 10:00\n"
+            "• 10 мая 18:00\n\n"
+            "Попробуй ещё раз:"
+        )
+        return
+
+    # Вычисляем время удаления (через 2 часа после игры)
+    expires_at = calculate_expiry_time(game_time)
+
+    await state.update_data(time=time_str, expires_at=expires_at)
     await state.set_state(CreateGame.level)
     await message.answer(
         "🏅 Выбери уровень игры:",
@@ -142,7 +173,8 @@ async def process_confirm(message: Message, state: FSMContext):
                 city='Москва',
                 creator_id=message.from_user.id,
                 creator_username=message.from_user.username or "без username",
-                is_active=True
+                is_active=True,
+                expires_at=data.get('expires_at')
             )
             session.add(new_game)
             await session.commit()
