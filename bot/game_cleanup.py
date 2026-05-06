@@ -8,7 +8,7 @@ async def cleanup_expired_games():
     """Фоновая задача для удаления просроченных игр"""
     while True:
         try:
-            current_time = datetime.now()
+            current_time = datetime.utcnow()
 
             async with async_session_maker() as session:
                 # Находим все активные игры, у которых истёк срок
