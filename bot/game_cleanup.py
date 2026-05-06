@@ -30,9 +30,9 @@ async def cleanup_expired_games():
                     await session.commit()
                     print(f"Удалено просроченных игр: {len(expired_games)}")
 
-            # Проверяем каждую минуту (для теста)
-            await asyncio.sleep(60)
+            # Проверяем каждый час
+            await asyncio.sleep(3600)
 
         except Exception as e:
             print(f"Ошибка в cleanup_expired_games: {e}")
-            await asyncio.sleep(60)
+            await asyncio.sleep(3600)
