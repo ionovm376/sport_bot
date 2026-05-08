@@ -79,7 +79,12 @@ async def my_games(message: Message):
 
         for game in active_games:
             # Вычисляем сколько мест осталось
-            players_needed_num = int(game.players_needed.replace('+', '')) if game.players_needed != '6+' else 6
+            try:
+                players_needed_num = int(game.players_needed)
+            except ValueError:
+                # Если не число (например старая запись "6+"), считаем как 6
+                players_needed_num = 6
+
             spots_left = players_needed_num - game.participants_count
 
             text = (

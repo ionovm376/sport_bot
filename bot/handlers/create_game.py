@@ -126,12 +126,44 @@ async def process_players(message: Message, state: FSMContext):
         await message.answer("⚠️ Выбери количество из меню")
         return
 
-    await state.update_data(players_needed=players)
-    await state.set_state(CreateGame.comment)
-    await message.answer(
-        "💬 Добавь комментарий (необязательно):",
-        reply_markup=skip_comment()
-    )
+    # Если выбрали "6+" — спрашиваем точное количество
+    if players == "6+":
+        await state.update_data(players_needed=players)
+        await state.set_state(CreateGame.players_exact)
+        await message.answer(
+            "👥 Укажи точное количество игроков:\n"
+            "(например: 8, 10, 15, 20)",
+            reply_markup=main_menu()
+        )
+    else:
+        await state.update_data(players_needed=players)
+        await state.set_state(CreateGame.comment)
+        await message.answer(
+            "💬 Добавь комментарий (необязательно):",
+            reply_markup=skip_comment()
+        )
+
+
+@router.message(CreateGame.players_exact)
+async def process_players_exact(message: Message, state: FSMContext):
+    try:
+        exact_count = int(message.text)
+        if exact_count < 7:
+            await message.answer("⚠️ Для 6 и меньше выбери из меню. Укажи число больше 6:")
+            return
+        if exact_count > 100:
+            await message.answer("⚠️ Слишком много! Укажи реальное количество (до 100):")
+            return
+
+        # Сохраняем точное количество
+        await state.update_data(players_needed=str(exact_count))
+        await state.set_state(CreateGame.comment)
+        await message.answer(
+            "💬 Добавь комментарий (необязательно):",
+            reply_markup=skip_comment()
+        )
+    except ValueError:
+        await message.answer("⚠️ Введи число (например: 10, 15, 20):")
 
 
 @router.message(CreateGame.comment)

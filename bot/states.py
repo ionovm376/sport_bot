@@ -11,6 +11,7 @@ class CreateGame(StatesGroup):
     time = State()
     level = State()
     players_needed = State()
+    players_exact = State()  # Для точного количества при выборе "6+"
     comment = State()
     confirm = State()
 

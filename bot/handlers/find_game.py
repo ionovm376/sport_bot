@@ -50,7 +50,12 @@ async def process_find_sport(message: Message, state: FSMContext):
 
     for idx, game in enumerate(filtered_games, 1):
         # Вычисляем сколько мест осталось
-        players_needed_num = int(game.players_needed.replace('+', '')) if game.players_needed != '6+' else 6
+        try:
+            players_needed_num = int(game.players_needed)
+        except ValueError:
+            # Если не число (например старая запись "6+"), считаем как 6
+            players_needed_num = 6
+
         spots_left = players_needed_num - game.participants_count
 
         game_text = (
@@ -177,7 +182,11 @@ async def process_accept(callback: CallbackQuery):
         game.participants_count += 1
 
         # Проверяем сколько нужно людей
-        players_needed_num = int(game.players_needed.replace('+', '')) if game.players_needed != '6+' else 6
+        try:
+            players_needed_num = int(game.players_needed)
+        except ValueError:
+            # Если не число (например старая запись "6+"), считаем как 6
+            players_needed_num = 6
 
         # Если набрали всех — закрываем игру
         if game.participants_count >= players_needed_num:
