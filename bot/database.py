@@ -40,6 +40,7 @@ class Game(Base):
     time: Mapped[str] = mapped_column(String(100))
     level: Mapped[str] = mapped_column(String(50))
     players_needed: Mapped[str] = mapped_column(String(10))
+    participants_count: Mapped[int] = mapped_column(Integer, default=0)
     comment: Mapped[str] = mapped_column(String(500), default="—")
     city: Mapped[str] = mapped_column(String(100), default="Москва")
     creator_id: Mapped[int] = mapped_column(BigInteger)

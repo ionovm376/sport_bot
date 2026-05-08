@@ -78,11 +78,16 @@ async def my_games(message: Message):
         await message.answer("🎮 Твои активные игры:", reply_markup=main_menu())
 
         for game in active_games:
+            # Вычисляем сколько мест осталось
+            players_needed_num = int(game.players_needed.replace('+', '')) if game.players_needed != '6+' else 6
+            spots_left = players_needed_num - game.participants_count
+
             text = (
                 f"{game.sport}\n"
                 f"📍 {game.location}\n"
                 f"🕐 {game.time}\n"
-                f"👥 Нужно: {game.players_needed}\n"
+                f"👥 Набрано: {game.participants_count}/{game.players_needed}\n"
+                f"🔓 Осталось мест: {spots_left}\n"
                 f"🏅 Уровень: {game.level}"
             )
 

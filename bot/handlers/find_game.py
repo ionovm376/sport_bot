@@ -49,13 +49,18 @@ async def process_find_sport(message: Message, state: FSMContext):
     )
 
     for idx, game in enumerate(filtered_games, 1):
+        # Вычисляем сколько мест осталось
+        players_needed_num = int(game.players_needed.replace('+', '')) if game.players_needed != '6+' else 6
+        spots_left = players_needed_num - game.participants_count
+
         game_text = (
             f"📋 Игра #{idx}\n\n"
             f"🎯 Спорт: {game.sport}\n"
             f"📍 Место: {game.location}\n"
             f"🕐 Время: {game.time}\n"
             f"🏅 Уровень: {game.level}\n"
-            f"👥 Нужно людей: {game.players_needed}\n"
+            f"👥 Набрано: {game.participants_count}/{game.players_needed}\n"
+            f"🔓 Осталось мест: {spots_left}\n"
             f"💬 Комментарий: {game.comment}\n"
             f"👤 Создатель: @{game.creator_username}\n\n"
             f"{format_rating(game.creator_id)}"
@@ -168,8 +173,22 @@ async def process_accept(callback: CallbackQuery):
             await callback.answer("❌ Игра уже удалена", show_alert=True)
             return
 
+        # Увеличиваем счётчик участников
+        game.participants_count += 1
+
+        # Проверяем сколько нужно людей
+        players_needed_num = int(game.players_needed.replace('+', '')) if game.players_needed != '6+' else 6
+
+        # Если набрали всех — закрываем игру
+        if game.participants_count >= players_needed_num:
+            game.is_active = False
+            status_text = "✅ Заявка принята! Все места заняты, игра закрыта."
+        else:
+            spots_left = players_needed_num - game.participants_count
+            status_text = f"✅ Заявка принята! Набрано: {game.participants_count}/{game.players_needed}. Осталось мест: {spots_left}"
+
         await callback.message.edit_text(
-            callback.message.text + "\n\n✅ Заявка принята! Игра удалена из поиска."
+            callback.message.text + f"\n\n{status_text}"
         )
 
         await callback.bot.send_message(
@@ -196,12 +215,9 @@ async def process_accept(callback: CallbackQuery):
             reviews_sent=False
         )
         session.add(completed_game)
-
-        # Помечаем игру как неактивную
-        game.is_active = False
         await session.commit()
 
-    await callback.answer("✅ Заявка принята! Игра удалена из поиска.")
+    await callback.answer(status_text)
 
 
 @router.callback_query(F.data.startswith("decline_"))
